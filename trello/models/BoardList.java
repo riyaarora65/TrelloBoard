@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BoardList{
-    private static int count = 0;
-    String Id;
+	private static int count = 0;
+	String Id;
+	String boardID;
     String name;
     List<Card> cards;
 
-    public BoardList(String name){
+    public BoardList(String name, String boardId){
+		this.boardID = boardId;
         this.Id = Integer.toString(count++);
         this.name = name;
         cards = new ArrayList<Card>();
@@ -30,6 +32,14 @@ public class BoardList{
 	}
 	public void setCards(List<Card> cards) {
 		this.cards = cards;
+	}
+
+	public String getBoardID() {
+		return boardID;
+	}
+
+	public void setBoardID(String boardID) {
+		this.boardID = boardID;
 	}
 
 }

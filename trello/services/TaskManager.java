@@ -1,5 +1,6 @@
 package trello.services;
 
+import trello.services.TaskService;
 import trello.models.Board;
 import trello.models.Card;
 import trello.models.User;
@@ -14,17 +15,15 @@ public class TaskManager {
 
     List<User> userMap;
     List<Board> boardMap;
-    //boardid, boardlis
-    Map<String, BoardList> boardListMap;
-    //boardid, listid, card
-    Map<String, Card>  cardListMap;
+    List<Card> cardMap;
+    List<BoardList> boardListMap;
 
     
     public TaskManager(){
         userMap = new ArrayList<User>();
         boardMap = new ArrayList<Board>();
-        boardListMap = new HashMap<String,BoardList>();
-        cardListMap = new HashMap<String, Card>();
+        cardMap = new ArrayList<Card>();
+        boardListMap = new ArrayList<BoardList>();
     }
 
 
@@ -37,6 +36,7 @@ public class TaskManager {
         for(User user: userMap){
             if((user.getName()).equals(userName))
                 matchedUser =  user;
+                System.out.println("matched"+matchedUser.getName());
         }
 
         if(matchedUser == null)
@@ -47,7 +47,7 @@ public class TaskManager {
     }
 
     public void createBoard(String boardName, String privacy){
-        Board board = new Board(boardName, privacy);
+        Board board = TaskService.createBoard(boardName, privacy);
         boardMap.add(board);
     }
 
@@ -58,9 +58,6 @@ public class TaskManager {
             if((board.getName()).equals(boardName))
             {
                 members = board.getMembers();
-                if(members == null)
-                    members = new ArrayList<User>();
-
                 members.add(getUserByName(userName));
                 board.setMembers(members);        
             }
@@ -95,9 +92,14 @@ public class TaskManager {
         }
     }
 
-    public void deleteAllListsFromBoard(Board board){
-        if(boardListMap.containsKey(board.getId()))
-            boardListMap.remove(board.getId());
+    public void deleteAllListsFromBoard(Board board)
+    {
+        for(BoardList boardList: boardListMap){
+            if(boardList.getBoardID().equals(board.getId())){
+                deleteAllCardsFromList(board, boardList);
+                boardListMap.remove(boardList);
+            }
+        }
     }
 
     public Board getBoardByName(String boardName){
@@ -117,103 +119,213 @@ public class TaskManager {
     public void createList(String listName, String boardName)
     {
 
-        String boardID = (getBoardByName(boardName)).getId();
-        BoardList boardList = new BoardList(listName);
-        boardListMap.put(boardID, boardList);
+        Board board = getBoardByName(boardName);
+        List<BoardList> lists = board.getLists();
+        BoardList boardList = TaskService.createBoardList(listName, board.getId());
+        lists.add(boardList);
+        board.setLists(lists);
+        boardListMap.add(boardList);
     }
 
     public void deleteList(String listname, String boardName)
     {
-        String boardID = (getBoardByName(boardName)).getId();
-        for(Map.Entry<String, BoardList> currentBoardListMap : boardListMap.entrySet()){
-            if( ((currentBoardListMap.getKey()).equals(boardID)) &&
-                ((currentBoardListMap.getValue().getName()).equals(listname)) )
+        Board board = getBoardByName(boardName);
+        List<BoardList> lists = board.getLists();
+        for(BoardList boardList : boardListMap){
+            if( (boardList.getBoardID()).equals(board.getId()) && 
+                boardList.getName().equals(listname) )
             {
-                boardListMap.remove(currentBoardListMap.getKey());
+                lists.remove(boardList);
+                deleteAllCardsFromList(board, boardList);
+                boardListMap.remove(boardList);
                 break;
             }
         }
+        board.setLists(lists);
     }
 
     public BoardList getListByName(String listName, String boardName)
     {
+        String boardId = getBoardByName(boardName).getId();
         BoardList matchedList = null;
-        String boardID = (getBoardByName(boardName)).getId();
-        for(Map.Entry<String, BoardList> currentBoardListMap : boardListMap.entrySet())
-        {
-            if( ( ((currentBoardListMap.getValue()).getName()).equals(listName)) && 
-                  ((currentBoardListMap.getKey()).equals(boardID)) )
+        for(BoardList boardList: boardListMap){
+            if((boardList.getName()).equals(listName) && 
+                (boardList.getBoardID().equals(boardId))  
+            )
             {
-                matchedList = currentBoardListMap.getValue();
+                matchedList = boardList;
                 break;
-            } 
+            }
         }
         if(matchedList == null)
-            throw new IllegalArgumentException("List does not exits");
+            throw new IllegalArgumentException("List does not exists");
         return matchedList;
     }
 
     public void createCard(String cardName, String cardDescription, String boardName, String listName)
     {
-        Card card = new Card(cardName, cardDescription);
         BoardList boardList = getListByName(listName, boardName);
-        cardListMap.put(boardList.getId(), card);
+        Card card = TaskService.createCard(cardName, cardDescription, boardList.getId());
+        List<Card> cards = boardList.getCards(); 
+        cards.add(card);
+        boardList.setCards(cards);
+        cardMap.add(card);
     }
 
-    public void getCardByName(String cardName, String listName, String boardName)
+    public Card getCardByName(String cardName, String listName, String boardName)
     {
         Card matchedcard = null;
         String listID = (getListByName(listName, boardName)).getId();
-        for(Map.Entry<String, BoardList> currentBoardListMap : boardListMap.entrySet())
+        for(Card card: cardMap)
         {
-            if( ( ((currentBoardListMap.getValue()).getName()).equals(listName)) && 
-                  ((currentBoardListMap.getKey()).equals(boardID)) )
+            if( ( (card.getListID().equals(listID))) && 
+                  ( (card.getName()).equals(cardName) )) 
             {
-                matchedList = currentBoardListMap.getValue();
+                matchedcard = card;
                 break;
             } 
         }
-        if(matchedList == null)
-            throw new IllegalArgumentException("List does not exits");
-        return matchedList;
+        if(matchedcard == null)
+            throw new IllegalArgumentException("Card does not exits");
+        return matchedcard;
 
     }
 
-    public void assignCardToUser(String cardName, String userName)
+    public void assignCardToUser(String cardName,String listName, String boardName, String userName)
     {
-        
+        Card card = getCardByName(cardName, listName, boardName);
+        User user = getUserByName(userName);
+        card.setAssignedUser(user);
     }
 
-    public void unassignUserfromCard(String cardName, String userName){
+    public void unassignUserfromCard(String cardName,String listName, String boardName){
+        Card card = getCardByName(cardName, listName, boardName);
+        card.setAssignedUser(null);
+    }
+
+    public void deleteCard(String cardName, String listName, String boardName)
+    {
+        BoardList list = getListByName(listName, boardName);
+        Card card = getCardByName(cardName, listName, boardName);
+        cardMap.remove(card);
+        List<Card> cards = list.getCards();
+        cards.remove(card);
+        list.setCards(cards);
+    }
+
+
+    public void deleteAllCardsFromList(Board board, BoardList boardList)
+    {
+        for(BoardList list: boardListMap)
+        {
+            if( ((list.getName()).equals(boardList.getName())) &&
+                ( ( list.getBoardID() ).equals( board.getId() ) ) )
+                {
+                    List<Card> cards = list.getCards();
+                    for(Card card: cards){
+                        cardMap.remove(card);
+                    }
+                    cards.clear();
+                    list.setCards(cards); 
+                }
+        }
+    }
+
+
+    public void showBoard(String boardName)
+    {
+        Board board = getBoardByName(boardName);
+        printBoard(board);
+    }
+
+    public void printBoardMembers(Board board){
+        System.out.println("Board Members are: ");
+        List<User> members = board.getMembers();
+        for(User user: members){
+            System.out.println("Name: " + user.getName() );
+            System.out.println("Email: "+ user.getEmail());
+        }
+    }
+
+    public void printBoardLists(Board board){
+        System.out.println("Board Lists are: ");
+        List<BoardList> lists = board.getLists();
+        for(BoardList boardList: lists){
+            printList(boardList);
+        }
+    }
+
+    public void printBoardListCards(BoardList boardList){
+        System.out.println("Cards are: ");
+        List<Card> cards = boardList.getCards();
+        for(Card card: cards){
+            printCard(card);
+        }
+    }
+
+    public void printBoard(Board board){
+        System.out.println("Board Name: "+board.getName());
+        System.out.println("Board privacy: "+ board.getPrivacy());
+        System.out.println("Board Url: "+board.getUrl());
+        printBoardMembers(board);
+        printBoardLists(board);
+    }
+
+    public void showAllBoards()
+    {
+        for(Board board: boardMap)
+            printBoard(board);
+    }
+
+    public void printList(BoardList boardList){
+        System.out.println("List name is: "+ boardList.getName());
+        printBoardListCards(boardList);
+    }
+
+    public void showList(String listName, String boardName)
+    {
+        String boardId = getBoardByName(boardName).getId();
+        for(BoardList boardList: boardListMap){
+            if((boardList.getName()).equals(listName) && 
+                (boardList.getBoardID().equals(boardId))  
+            ){
+                printList(boardList);
+            }
+        }
+    }
+
+    public void showBoardLists(String boardName)
+    {
+        Board board = getBoardByName(boardName);
+        printBoardLists(board);
 
     }
 
-    public void deleteCard(String cardName, String listName){
-
+    public void printCard(Card card)
+    {
+        System.out.println("updated");
+        System.out.println("Card Name is: "+ card.getName());
+        System.out.println("Card Description is: "+ card.getDescription());
+        //this can be null and give null pointer exception
+        if(card.getAssignedUser() != null){
+            System.out.println("Card assigned user is: "+ card.getAssignedUser().getName());
+        }
+        else{
+            System.out.println("Card not assigned");
+        }
     }
 
-    public void showBoard(String boardName){
-
+    public void showCard(String cardName, String listName, String boardName)
+    {
+        Card card = getCardByName(cardName, listName, boardName);
+        printCard(card);
     }
 
-    public void showAllBoards(){
-
-    }
-
-    public void showList(String listName, String boardName){
-
-    }
-
-    public void showBoardLists(String boardName){
-
-    }
-
-    public void showCard(String cardName, String listName){
-
-    }
-
-    public void showListCards(String listName){
-
+    public void showListCards(String listName, String boardName)
+    {
+        System.out.println("List is: "+listName);
+        BoardList boardList = getListByName(listName, boardName);
+        printBoardListCards(boardList);
     }
 
 }

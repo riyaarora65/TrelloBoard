@@ -24,27 +24,29 @@ public class Driver {
         Scanner sc = new Scanner(System.in);
         while(true){
             String input = sc.nextLine();
-            String[] inputs = input.split(" ");
-            String command = inputs[1];
+            String[] commands = input.split(" ");
+            String command = commands[1];
 
-            switch(inputs[0])
+            int commandLength = commands.length;
+            
+            switch(commands[0])
             {
                 case "BOARD":
 
                     if(command.equals("CREATE")){
-                        taskManager.createBoard(inputs[2], inputs[3]);
+                        taskManager.createBoard(commands[2], commands[3]);
                     }
 
                     if(command.equals("ADD_MEMBER")){
-                        taskManager.addMemberToBoard(inputs[2], inputs[3]);
+                        taskManager.addMemberToBoard(commands[2], commands[3]);
                     }
                     
                     if(command.equals("REMOVE_MEMBER")){
-                        taskManager.removeMemberfromBoard(inputs[2], inputs[3]);
+                        taskManager.removeMemberfromBoard(commands[2], commands[3]);
                     }
 
                     if(command.equals("DELETE")){
-                        taskManager.deleteBoard(inputs[2]);
+                        taskManager.deleteBoard(commands[2]);
                     }
                 break;
 
@@ -52,12 +54,12 @@ public class Driver {
 
                 //   list name , board name
                     if(command.equals("CREATE")){
-                        taskManager.createList(inputs[2], inputs[3]);
+                        taskManager.createList(commands[2], commands[3]);
                     }
                 
                 //list name, board name
                     if(command.equals("DELETE")){
-                        taskManager.deleteList(inputs[2], inputs[3]);
+                        taskManager.deleteList(commands[2], commands[3]);
                     }
                 break;
 
@@ -65,31 +67,31 @@ public class Driver {
                 case "CARD": 
 
                      if(command.equals("CREATE")){
-                        taskManager.createCard(inputs[2], inputs[3], inputs[4], inputs[5]);
+                        taskManager.createCard(commands[2], commands[3], commands[4], commands[5]);
                     }
 
-                //cardname, user
+                //cardname,listname, boardname, user
 
                     if(command.equals("ASSIGN")){
-                        taskManager.assignCardToUser(inputs[2], inputs[3]);
+                        taskManager.assignCardToUser(commands[2], commands[3], commands[4], commands[5]);
                     }
                     
                     if(command.equals("UNASSIGN")){
-                        taskManager.unassignUserfromCard(inputs[2], inputs[3]);
+                        taskManager.unassignUserfromCard(commands[2], commands[3], commands[4]);
                     }
                 
-                //cardname, listname
+                //cardname, listname, boardname
 
                     if(command.equals("DELETE")){
-                        taskManager.deleteCard(inputs[2], inputs[3]);
+                        taskManager.deleteCard(commands[2], commands[3], commands[4]);
                     }
                 break;
                 
                 case "SHOW":
                     switch(command){
                         case "BOARD":
-                            if(inputs[2]!= ""){
-                                taskManager.showBoard(inputs[2]);
+                            if(commandLength > 2){
+                                taskManager.showBoard(commands[2]);
                             }
                             else
                                 taskManager.showAllBoards();
@@ -97,20 +99,20 @@ public class Driver {
                         
                         case "LIST":
                             
-                            if(inputs[3]!= ""){
+                            if(commandLength > 3){
                                 //this is listname, boardname
-                                taskManager.showList(inputs[2], inputs[3]);
+                                taskManager.showList(commands[2], commands[3]);
                             }
                             else
-                                taskManager.showBoardLists(inputs[2]);
+                                taskManager.showBoardLists(commands[2]);
                             break;
                         
                         case "CARD": 
-                            if(inputs[3] != "")
-                            //card name, listname
-                                taskManager.showCard(inputs[2], inputs[3]);
+                            if(commandLength > 4)
+                            //card name, listname, boardName
+                                taskManager.showCard(commands[2], commands[3], commands[4]);
                             else
-                                taskManager.showListCards(inputs[2]);
+                                taskManager.showListCards(commands[2], commands[3]);
                             break;
 
                     }
@@ -119,3 +121,15 @@ public class Driver {
         }
     }
 }
+
+
+//edge cases like
+//try to assign a card who is not member of that board
+//list is empty
+//cards are not ther
+//assigned user is not there
+//list not part of that board
+//card not part of that list
+//not a valid input
+///empty string printed
+//aray out of bound for inputs
